@@ -5,7 +5,7 @@ This project provides a local Windows workflow for separating a mixed song into 
 It includes:
 
 - `setup.sh` to build and verify the Python/CUDA environment.
-- `audio-separator.sh` to run the separation with suitable defaults.
+- `vocal-separator.sh` to run the separation with suitable defaults.
 - Automatic model downloading on the first separation.
 
 ## Project origins
@@ -21,12 +21,12 @@ The upstream projects and model retain their respective licenses and attribution
 ## Folder layout
 
 ```text
-audio-separator/
+vocal-separator/
 ├── input/                 Source audio
 ├── models/                Downloaded checkpoints and configurations
 ├── output/                Generated vocal and instrumental stems
 ├── venv/                  Project-local Python environment
-├── audio-separator.sh     Separation wrapper
+├── vocal-separator.sh     Separation wrapper
 ├── setup.sh               Environment setup
 ├── .gitignore
 └── README.md
@@ -75,7 +75,7 @@ py -3.12 --version
 ### 2. Make the scripts executable
 
 ```bash
-chmod +x setup.sh audio-separator.sh
+chmod +x setup.sh vocal-separator.sh
 ```
 
 ### 3. Build the environment
@@ -112,7 +112,7 @@ For the first test, use a short representative section containing vocals, instru
 ### 5. Run the separation
 
 ```bash
-./audio-separator.sh "input/test.wav"
+./vocal-separator.sh "input/test.wav"
 ```
 
 On the first run, Audio Separator automatically downloads the model checkpoint and its matching configuration into `models`. The checkpoint is approximately 913 MB.
@@ -127,7 +127,7 @@ Two files are written to `output`:
 You can provide any valid file path:
 
 ```bash
-./audio-separator.sh "/c/Users/kai/Music/My Song.wav"
+./vocal-separator.sh "/c/Users/kai/Music/My Song.wav"
 ```
 
 Always quote paths containing spaces or shell metacharacters.
@@ -137,25 +137,25 @@ Always quote paths containing spaces or shell metacharacters.
 Additional Audio Separator arguments can be placed after the input filename:
 
 ```bash
-./audio-separator.sh "input/test.wav" --mdxc_overlap 4
+./vocal-separator.sh "input/test.wav" --mdxc_overlap 4
 ```
 
 Examples:
 
 ```bash
 # Use a different segment size
-./audio-separator.sh "input/test.wav" --mdxc_segment_size 128
+./vocal-separator.sh "input/test.wav" --mdxc_segment_size 128
 
 # Export as FLAC
-./audio-separator.sh "input/test.wav" --output_format FLAC
+./vocal-separator.sh "input/test.wav" --output_format FLAC
 
 # Export as MP3
-./audio-separator.sh "input/test.wav" \
+./vocal-separator.sh "input/test.wav" \
   --output_format MP3 \
   --output_bitrate 320k
 
 # Write results to another directory
-./audio-separator.sh "input/test.wav" \
+./vocal-separator.sh "input/test.wav" \
   --output_dir "/c/Users/kai/Music/Separated"
 ```
 
@@ -169,13 +169,13 @@ venv/Scripts/audio-separator.exe --help
 
 ## Wrapper defaults
 
-`audio-separator.sh` configures:
+`vocal-separator.sh` configures:
 
 ```text
 Model:        mel_band_roformer_instrumental_becruily.ckpt
 Output:       WAV
 Precision:    native FP16
-Segment size: 64
+Segment size: 128
 Batch size:   1
 Overlap:      2
 Model folder: models/
@@ -269,7 +269,7 @@ A PyTorch version ending in `+cpu` is CPU-only. Run `setup.sh` after preserving 
 Close other applications using hardware acceleration and reduce the segment size:
 
 ```bash
-./audio-separator.sh "input/test.wav" --mdxc_segment_size 32
+./vocal-separator.sh "input/test.wav" --mdxc_segment_size 32
 ```
 
 Keep the batch size at `1` and continue using native FP16.
@@ -281,11 +281,5 @@ Smaller segments reduce memory use but can increase processing time and separati
 Paths are resolved from the directory where the wrapper was launched. Check the path and keep it quoted:
 
 ```bash
-./audio-separator.sh "/c/Users/kai/Music/My Song.wav"
+./vocal-separator.sh "/c/Users/kai/Music/My Song.wav"
 ```
-
-### Separation artifacts
-
-Reverb, delay, backing vocals and instruments sharing frequencies with the voice can cause bleed or artifacts in either stem.
-
-Evaluate both outputs against the preserved source before using them in a final production.
