@@ -127,7 +127,7 @@ Two files are written to `output`:
 You can provide any valid file path:
 
 ```bash
-./vocal-separator.sh "/c/Users/kai/Music/My Song.wav"
+./vocal-separator.sh "input/test.wav"
 ```
 
 Always quote paths containing spaces or shell metacharacters.
@@ -156,7 +156,7 @@ Examples:
 
 # Write results to another directory
 ./vocal-separator.sh "input/test.wav" \
-  --output_dir "/c/Users/kai/Music/Separated"
+  --output_dir "/c/path/to/Separated"
 ```
 
 For ordinary value options, arguments supplied on the command line override the wrapper defaults because they are forwarded last.
@@ -275,11 +275,3 @@ Close other applications using hardware acceleration and reduce the segment size
 Keep the batch size at `1` and continue using native FP16.
 
 Smaller segments reduce memory use but can increase processing time and separation artifacts.
-
-### Input file not found
-
-Paths are resolved from the directory where the wrapper was launched. Check the path and keep it quoted:
-
-```bash
-./vocal-separator.sh "/c/Users/kai/Music/My Song.wav"
-```

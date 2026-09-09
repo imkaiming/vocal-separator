@@ -43,7 +43,7 @@ echo "--> Upgrading pip, setuptools, and wheel..."
 
 echo "--> Installing vocal-separator dependencies (GPU version) and audioread..."
 # Note: The upstream pip package is literally named 'audio-separator'
-"$PYTHON" -m pip install "audio-separator[gpu]"
+"$PYTHON" -m pip install "audio-separator[gpu]==0.47.0"
 "$PYTHON" -m pip install audioread==3.1.0
 
 echo "--> Installing PyTorch with CUDA 13.0 support (this may take a few minutes)..."
