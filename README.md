@@ -1,12 +1,12 @@
-# Mel-Band RoFormer vocal and instrumental separation
+# Vocal Separator
 
-A local Windows workflow for separating a mixed song into vocal and instrumental stems.
+A thin local Windows tool for splitting a song into vocal and instrumental stems.
 
 It includes:
 
-- `setup.sh` to build and verify a GPU-accelerated or CPU-only Python environment.
-- `vocal-separator.sh` to run the separation with suitable defaults.
-- Automatic model downloading on the first separation.
+- `setup.sh` to build and verify a GPU-accelerated or CPU-only Python environment
+- `vocal-separator.sh` to run separation with sensible defaults
+- Automatic model download on the first run
 
 ## Project origins
 
@@ -32,27 +32,24 @@ vocal-separator/
 └── README.md
 ```
 
-The environment, downloaded models, input recordings and generated outputs are excluded from Git.
+## Prerequisites
 
-Always preserve the original recording. Source separation is not perfectly reversible.
-
-## Dependencies
-
-The setup script expects:
-
-- Windows with Git Bash
+- Windows + Bash
 - Python 3.12
 - FFmpeg available on `PATH`
-- An NVIDIA driver with CUDA support (optional, for acceleration)
+- NVIDIA GPU + recent driver (optional, strongly recommended)
 
-It installs and configures:
+Python 3.12 is required because `diffq-fixed` provides a Windows wheel for 3.12 but not for 3.14.
 
-- `audio-separator` 0.47.0, with its GPU extra when CUDA is usable
-- PyTorch 2.14.0 and Torchvision 0.29.0, using CUDA 13.0 when available
-- `audioread` 3.1.0
-- `diffq-fixed` 0.2.4 and the remaining Audio Separator dependencies
+## What setup installs
 
-Python 3.12 is intentional. `diffq-fixed` 0.2.4 provides a Windows wheel for Python 3.12 but not Python 3.14.
+- `audio-separator` 0.47.0 (GPU extra when CUDA is available)
+- PyTorch + Torchvision (CUDA build when possible, otherwise CPU)
+- `audioread` and remaining Audio Separator dependencies
+
+Exact package versions are pinned in `setup.sh`.
+
+GPU is strongly preferred. CPU mode works but is much slower.
 
 ## Quick start
 
@@ -60,11 +57,6 @@ Python 3.12 is intentional. `diffq-fixed` 0.2.4 provides a Windows wheel for Pyt
 
 ```bash
 winget install --exact --id Python.Python.3.12
-```
-
-verify the installation:
-
-```bash
 py -3.12 --version
 ```
 
@@ -80,17 +72,29 @@ chmod +x setup.sh vocal-separator.sh
 ./setup.sh
 ```
 
-### 5. Run
+### 4. Add your audio
+
+Place a file in `input/`, for example:
+
+```text
+input/test.wav
+```
+
+WAV is preferred for quality. Common formats such as MP3 are also supported. The original file is never modified.
+
+### 5. Run the separator
 
 ```bash
 ./vocal-separator.sh "input/test.wav"
 ```
 
-On the first run, Audio Separator automatically downloads the model checkpoint and its matching configuration into `models`.
+On the first run the model checkpoint is downloaded into `models/`.
 
-## Use cases
+Vocal and instrumental stems are written to `output/`. Some bleed or artifacts can remain, especially on dense mixes.
 
-Additional arguments can be placed after the input filename:
+## Common options
+
+Extra arguments can be passed after the input file:
 
 ```bash
 ./vocal-separator.sh "input/test.wav" --mdxc_overlap 4
@@ -99,8 +103,8 @@ Additional arguments can be placed after the input filename:
 Examples:
 
 ```bash
-# Use a different segment size
-./vocal-separator.sh "input/test.wav" --mdxc_segment_size 128
+# Lower VRAM usage
+./vocal-separator.sh "input/test.wav" --mdxc_segment_size 64
 
 # Export as FLAC
 ./vocal-separator.sh "input/test.wav" --output_format FLAC
@@ -110,12 +114,12 @@ Examples:
   --output_format MP3 \
   --output_bitrate 320k
 
-# Write results to another directory
+# Custom output directory
 ./vocal-separator.sh "input/test.wav" \
   --output_dir "/c/path/to/Separated"
 ```
 
-Run the underlying help command to see every available option:
+Full option list:
 
 ```bash
 venv/Scripts/audio-separator.exe --help
@@ -123,24 +127,20 @@ venv/Scripts/audio-separator.exe --help
 
 ## Wrapper defaults
 
-`vocal-separator.sh` configures:
-
 ```text
-Model:        mel_band_roformer_instrumental_becruily.ckpt
-Output:       WAV
-Precision:    native FP16
-Segment size: 128
-Batch size:   1
-Overlap:      2
-Model folder: models/
+Model:         mel_band_roformer_instrumental_becruily.ckpt
+Output format: WAV
+Precision:     native FP16
+Segment size:  128
+Batch size:    1
+Overlap:       2
+Model folder:  models/
 Output folder: output/
 ```
 
-The wrapper does not use `--single_stem`, so both vocal and instrumental stems are generated.
+Both vocal and instrumental stems are generated.
 
 ## Manual model download
-
-To download the model without processing audio:
 
 ```bash
 venv/Scripts/audio-separator.exe \
@@ -149,27 +149,30 @@ venv/Scripts/audio-separator.exe \
   --download_model_only
 ```
 
-## Verify the environment manually
-
-Check PyTorch and CUDA:
+## Verify the environment
 
 ```bash
-venv/Scripts/python.exe -c "import torch; print('PyTorch:', torch.__version__); print('CUDA runtime:', torch.version.cuda); print('CUDA available:', torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'GPU not detected')"
+venv/Scripts/python.exe -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU mode')"
 ```
-
-`CUDA available: True` means GPU acceleration is active. `False` means the project will run on the CPU.
-
-Check the complete Audio Separator environment:
 
 ```bash
 venv/Scripts/audio-separator.exe --env_info
 ```
 
-The output should report:
+Use `venv/Scripts/python.exe` and `venv/Scripts/audio-separator.exe` inside this project. The Windows `py` launcher can bypass the virtual environment.
 
-- Python 3.12;
-- a CUDA-enabled PyTorch build when an NVIDIA GPU is available, or CPU PyTorch otherwise;
-- FFmpeg installed;
-- CUDA available in Torch and the ONNX Runtime CUDA execution provider available when GPU acceleration is active.
+## Troubleshooting
 
-Use `venv/Scripts/python.exe` or `venv/Scripts/audio-separator.exe` when working inside this project. The Windows `py` launcher can bypass the virtual environment.
+**CUDA out of memory**  
+Reduce segment size:
+
+```bash
+./vocal-separator.sh "input/test.wav" --mdxc_segment_size 64
+```
+
+**Runs very slowly**  
+You are likely on CPU. GPU acceleration is strongly recommended.
+
+## License
+
+This repository's wrapper scripts are provided as-is for personal use.
