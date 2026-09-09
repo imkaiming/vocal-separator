@@ -1,10 +1,10 @@
 # Mel-Band RoFormer vocal and instrumental separation
 
-This project provides a local Windows workflow for separating a mixed song into vocal and instrumental stems.
+A local Windows workflow for separating a mixed song into vocal and instrumental stems.
 
 It includes:
 
-- `setup.sh` to build and verify the Python/CUDA environment.
+- `setup.sh` to build and verify a GPU-accelerated or CPU-only Python environment.
 - `vocal-separator.sh` to run the separation with suitable defaults.
 - Automatic model downloading on the first separation.
 
@@ -43,14 +43,12 @@ The setup script expects:
 - Windows with Git Bash
 - Python 3.12
 - FFmpeg available on `PATH`
-- An NVIDIA driver with CUDA support
-- Internet access during setup and the first separation
+- An NVIDIA driver with CUDA support (optional, for acceleration)
 
 It installs and configures:
 
-- `audio-separator[gpu]` 0.47.0
-- PyTorch 2.14.0 with CUDA 13.0
-- Torchvision 0.29.0 with CUDA 13.0
+- `audio-separator` 0.47.0, with its GPU extra when CUDA is usable
+- PyTorch 2.14.0 and Torchvision 0.29.0, using CUDA 13.0 when available
 - `audioread` 3.1.0
 - `diffq-fixed` 0.2.4 and the remaining Audio Separator dependencies
 
@@ -58,15 +56,13 @@ Python 3.12 is intentional. `diffq-fixed` 0.2.4 provides a Windows wheel for Pyt
 
 ## Quick start
 
-Open Git Bash in the project directory.
-
 ### 1. Install Python 3.12 if needed
 
 ```bash
 winget install --exact --id Python.Python.3.12
 ```
 
-Restart Git Bash, then verify the installation:
+verify the installation:
 
 ```bash
 py -3.12 --version
@@ -84,57 +80,17 @@ chmod +x setup.sh vocal-separator.sh
 ./setup.sh
 ```
 
-The setup script:
-
-1. Verifies Python 3.12 and FFmpeg.
-2. Creates the local `venv`.
-3. Installs Audio Separator and its dependencies.
-4. Replaces CPU-only PyTorch with the CUDA build.
-5. Checks the dependency tree.
-6. Verifies that CUDA is available.
-7. Verifies the complete Audio Separator environment.
-8. Creates `input`, `output` and `models`.
-
-Setup stops with an error if an existing environment uses the wrong Python version or if PyTorch cannot access CUDA. It does not automatically delete an existing environment.
-
-### 4. Add an input file
-
-Place a mixed recording in `input`, for example:
-
-```text
-input/test.wav
-```
-
-WAV is recommended for the best available source quality, although Audio Separator supports other common audio formats.
-
-For the first test, use a short representative section containing vocals, instruments and a quieter passage. This makes bleed and separation artifacts easier to evaluate.
-
-### 5. Run the separation
+### 5. Run
 
 ```bash
 ./vocal-separator.sh "input/test.wav"
 ```
 
-On the first run, Audio Separator automatically downloads the model checkpoint and its matching configuration into `models`. The checkpoint is approximately 913 MB.
+On the first run, Audio Separator automatically downloads the model checkpoint and its matching configuration into `models`.
 
-Two files are written to `output`:
+## Use cases
 
-- the isolated vocal stem;
-- the isolated instrumental stem.
-
-## Separating a file outside the project
-
-You can provide any valid file path:
-
-```bash
-./vocal-separator.sh "input/test.wav"
-```
-
-Always quote paths containing spaces or shell metacharacters.
-
-## Additional options
-
-Additional Audio Separator arguments can be placed after the input filename:
+Additional arguments can be placed after the input filename:
 
 ```bash
 ./vocal-separator.sh "input/test.wav" --mdxc_overlap 4
@@ -158,8 +114,6 @@ Examples:
 ./vocal-separator.sh "input/test.wav" \
   --output_dir "/c/path/to/Separated"
 ```
-
-For ordinary value options, arguments supplied on the command line override the wrapper defaults because they are forwarded last.
 
 Run the underlying help command to see every available option:
 
@@ -186,7 +140,7 @@ The wrapper does not use `--single_stem`, so both vocal and instrumental stems a
 
 ## Manual model download
 
-The run script downloads the model automatically. To download it without processing audio:
+To download the model without processing audio:
 
 ```bash
 venv/Scripts/audio-separator.exe \
@@ -203,7 +157,7 @@ Check PyTorch and CUDA:
 venv/Scripts/python.exe -c "import torch; print('PyTorch:', torch.__version__); print('CUDA runtime:', torch.version.cuda); print('CUDA available:', torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'GPU not detected')"
 ```
 
-`CUDA available` must report `True`.
+`CUDA available: True` means GPU acceleration is active. `False` means the project will run on the CPU.
 
 Check the complete Audio Separator environment:
 
@@ -214,64 +168,8 @@ venv/Scripts/audio-separator.exe --env_info
 The output should report:
 
 - Python 3.12;
-- a CUDA-enabled PyTorch build;
+- a CUDA-enabled PyTorch build when an NVIDIA GPU is available, or CPU PyTorch otherwise;
 - FFmpeg installed;
-- CUDA available in Torch;
-- the ONNX Runtime CUDA execution provider available.
+- CUDA available in Torch and the ONNX Runtime CUDA execution provider available when GPU acceleration is active.
 
 Use `venv/Scripts/python.exe` or `venv/Scripts/audio-separator.exe` when working inside this project. The Windows `py` launcher can bypass the virtual environment.
-
-## Troubleshooting
-
-### Existing environment uses the wrong Python version
-
-Preserve the existing environment by renaming it:
-
-```bash
-mv venv venv-incompatible
-./setup.sh
-```
-
-Do not overwrite an environment containing files you need.
-
-### `diffq-fixed` fails with `bitpack.pyx doesn't match any files`
-
-The environment was probably created with Python 3.14.
-
-Rename it and rebuild with Python 3.12:
-
-```bash
-mv venv venv-incompatible
-py -3.12 -m venv venv
-./setup.sh
-```
-
-### `No module named 'audioread'`
-
-Install the missing package inside the project environment:
-
-```bash
-venv/Scripts/python.exe -m pip install audioread==3.1.0
-```
-
-### `CUDA available: False`
-
-Confirm that the command uses the project environment:
-
-```bash
-venv/Scripts/python.exe -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
-```
-
-A PyTorch version ending in `+cpu` is CPU-only. Run `setup.sh` after preserving or correcting the existing environment.
-
-### CUDA out of memory
-
-Close other applications using hardware acceleration and reduce the segment size:
-
-```bash
-./vocal-separator.sh "input/test.wav" --mdxc_segment_size 32
-```
-
-Keep the batch size at `1` and continue using native FP16.
-
-Smaller segments reduce memory use but can increase processing time and separation artifacts.

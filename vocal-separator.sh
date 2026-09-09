@@ -26,6 +26,12 @@ if [[ ! -f "$SEPARATOR" ]]; then
   exit 1
 fi
 
+if ! "$SCRIPT_DIR/venv/Scripts/python.exe" -c \
+  "import torch; raise SystemExit(0 if torch.cuda.is_available() else 1)" \
+  >/dev/null 2>&1; then
+  echo "[WARN] No CUDA GPU detected — running on CPU (slow)." >&2
+fi
+
 if [[ $# -eq 0 ]]; then
   echo "Usage: $0 <input_audio> [vocal-separator arguments]" >&2
   echo "Example: $0 song.wav --mdxc_segment_size 64" >&2

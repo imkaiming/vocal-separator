@@ -1,0 +1,5 @@
+# Force bash scripts to use Unix (LF) line endings
+*.sh text eol=lf
+
+# Let Git handle other files automatically
+* text=auto
