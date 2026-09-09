@@ -1,0 +1,22 @@
+# Python environments and caches
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+# Audio Separator local environment, model weights, and audio
+venv/
+models/
+input/
+output/
+
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+*.aiff
